@@ -6,7 +6,7 @@
 
 struct
 {
-    float dataBuf[4096][4096];
+    float dataBuf[4096/2][4096];
 }__attribute__((packed)) _dataBuf;
 
 int main()
