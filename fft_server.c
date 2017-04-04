@@ -9,13 +9,9 @@
 
 struct
 {
-<<<<<<< HEAD
-    float dataBuf[4096/2][4096];
-=======
     unsigned char header;
     float dataBuf[COLUMNS];
 //    float dataBuf[BUFSIZE][COLUMNS];
->>>>>>> 83b4b0656e3a7791bb1b2c2f7c69a7542f8d98c0
 }__attribute__((packed)) _dataBuf;
 
 int main()
