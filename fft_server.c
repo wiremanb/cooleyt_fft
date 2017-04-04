@@ -4,15 +4,20 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define BUFSIZE 512
+#define COLUMNS 4096
+
 struct
 {
-    float dataBuf[4096][4096];
+    unsigned char header;
+    float dataBuf[COLUMNS];
+//    float dataBuf[BUFSIZE][COLUMNS];
 }__attribute__((packed)) _dataBuf;
 
 int main()
 {
     int udpSocket, nBytes;
-    char buffer[16];
+    unsigned char header;
     struct sockaddr_in serverAddr, clientAddr;
     struct sockaddr_storage serverStorage;
     socklen_t addr_size, client_addr_size;
@@ -27,35 +32,34 @@ int main()
     serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
 
+    // Create socket timeout
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000;
+    if (setsockopt(udpSocket, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0)
+        perror("Socket timeout error");
+
     /*Bind socket with address struct*/
     bind(udpSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr));
 
     /*Initialize size variable to be used later on*/
     addr_size = sizeof serverStorage;
 
-    // float indexVal = 0.00;
     srand((unsigned int)time(NULL));
-    for(size_t i=0; i<4096; i++)
+    while(1)
     {
-    	for(size_t j=0; j<4096; j++)
-    	{
-    		// /a for [0, a]
-    		_dataBuf.dataBuf[i][j] = (float)rand()/(float)(RAND_MAX);
-        	// _dataBuf.dataBuf[i][j] = indexVal;
-        	// indexVal += 1.00;
-    	}
-    }
+        nBytes = recvfrom(udpSocket,&_dataBuf.header,sizeof(_dataBuf.header),0,(struct sockaddr *)&serverStorage, &addr_size);
 
-    while(1){
-        /* Try to receive any incoming UDP datagram. Address and port of
-      requesting client will be stored on serverStorage variable */
-        nBytes = recvfrom(udpSocket,buffer,16,0,(struct sockaddr *)&serverStorage, &addr_size);
-
-        /*Convert message received to uppercase*/
-        for(i=0;i<nBytes-1;i++)
-            buffer[i] = toupper(buffer[i]);
-        if(strcmp("GO", buffer))
+        if(_dataBuf.header == 0xAA && nBytes > 0)
+        {
+            _dataBuf.header = 0xBB;
+            for(size_t j=0; j<COLUMNS; j++)
+            {
+                _dataBuf.dataBuf[j] = (float)rand()/(float)(RAND_MAX);
+                printf("Server data: %.02f\n", _dataBuf.dataBuf[j]);
+            }
             sendto(udpSocket,&_dataBuf,sizeof(_dataBuf),0,(struct sockaddr *)&serverStorage,addr_size);
+        }
     }
 
     return 0;
