@@ -6,14 +6,13 @@
 
 struct
 {
-    float dataBuf[4];
+    float dataBuf[4096][4096];
 }__attribute__((packed)) _dataBuf;
 
 int main()
 {
     int udpSocket, nBytes;
     char buffer[16];
-    float dataBuf[4] = {0.00, 1.00, 2.00, 3.00};
     struct sockaddr_in serverAddr, clientAddr;
     struct sockaddr_storage serverStorage;
     socklen_t addr_size, client_addr_size;
@@ -34,11 +33,17 @@ int main()
     /*Initialize size variable to be used later on*/
     addr_size = sizeof serverStorage;
 
-    float indexVal = 0.00;
-    for(size_t i=0; i<4; i++)
+    // float indexVal = 0.00;
+    srand((unsigned int)time(NULL));
+    for(size_t i=0; i<4096; i++)
     {
-        _dataBuf.dataBuf[i] = indexVal;
-        indexVal += 1.00;
+    	for(size_t j=0; j<4096; j++)
+    	{
+    		// /a for [0, a]
+    		_dataBuf.dataBuf[i][j] = (float)rand()/(float)(RAND_MAX);
+        	// _dataBuf.dataBuf[i][j] = indexVal;
+        	// indexVal += 1.00;
+    	}
     }
 
     while(1){

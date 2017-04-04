@@ -3,9 +3,11 @@
 #include <netinet/in.h>
 #include <string.h>
 
+#define BUFSIZE 4096/2
+
 struct
 {
-    float dataBuf[4];
+    float dataBuf[BUFSIZE][4096];
 }__attribute__((packed)) _dataBuf;
 
 int main()
