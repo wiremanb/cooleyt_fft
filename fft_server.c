@@ -4,24 +4,36 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define BUFSIZE 512
 #define COLUMNS 4096
+#define true 1
+#define false 0
+
+void FFT();
 
 struct
 {
-    unsigned char header;
-    float dataBuf[COLUMNS];
-//    float dataBuf[BUFSIZE][COLUMNS];
+    unsigned char header; //0xAA - NEW CLIENT - GET DATA
+                          //0xBB - SERVER TO CLIENT - ACK
+                          //0xCC - KNOWN CLIENT - FFT CALCULATED
+    char name[256];
+    float fft;
 }__attribute__((packed)) _dataBuf;
 
-int main()
+int main(int argc, char *argv[])
 {
     int udpSocket, nBytes;
-    unsigned char header;
     struct sockaddr_in serverAddr, clientAddr;
     struct sockaddr_storage serverStorage;
     socklen_t addr_size, client_addr_size;
-    int i;
+
+    if(argc < 2)
+    {
+        printf("Suggest use: ./s <number of clients>");
+        return -1;
+    }
+    int numberOfClients = atoi(argv[1]);
+    //    unsigned char clientHeaders[numberOfClients]; // Create client header array size of how many clients will connect
+    //    memset(&clientHeaders[0], NULL, numberOfClients);
 
     /*Create UDP socket*/
     udpSocket = socket(PF_INET, SOCK_DGRAM, 0);
@@ -46,19 +58,24 @@ int main()
     addr_size = sizeof serverStorage;
 
     srand((unsigned int)time(NULL));
+    static int clientCount = 0;
     while(1)
     {
-        nBytes = recvfrom(udpSocket,&_dataBuf.header,sizeof(_dataBuf.header),0,(struct sockaddr *)&serverStorage, &addr_size);
-
-        if(_dataBuf.header == 0xAA && nBytes > 0)
+        nBytes = recvfrom(udpSocket,&_dataBuf,sizeof(_dataBuf),0,(struct sockaddr *)&serverStorage, &addr_size);
+        if(nBytes > 0 && _dataBuf.header == 0xAA && clientCount < numberOfClients)
         {
+            printf("Client name: %s\n", _dataBuf.name);
+            clientCount++;
             _dataBuf.header = 0xBB;
-            for(size_t j=0; j<COLUMNS; j++)
-            {
-                _dataBuf.dataBuf[j] = (float)rand()/(float)(RAND_MAX);
-                printf("Server data: %.02f\n", _dataBuf.dataBuf[j]);
-            }
+            strcpy(_dataBuf.name, "Server");
             sendto(udpSocket,&_dataBuf,sizeof(_dataBuf),0,(struct sockaddr *)&serverStorage,addr_size);
+        }
+
+        nBytes = recvfrom(udpSocket,&_dataBuf,sizeof(_dataBuf),0,(struct sockaddr *)&serverStorage, &addr_size);
+        if(nBytes > 0 && _dataBuf.header == 0xCC)
+        {
+            printf("%s fft: %.02f", _dataBuf.name, _dataBuf.fft);
+            FFT();
         }
     }
 

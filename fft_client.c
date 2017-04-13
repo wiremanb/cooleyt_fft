@@ -3,23 +3,38 @@
 #include <netinet/in.h>
 #include <string.h>
 
-//#define BUFSIZE 4096/2
-#define BUFSIZE 512
 #define COLUMNS 4096
+
+//struct
+//{
+//    unsigned char header;
+//    float dataBuf[COLUMNS];
+//}__attribute__((packed)) _dataBuf;
 
 struct
 {
-    unsigned char header;
-    float dataBuf[COLUMNS];
-//    float dataBuf[BUFSIZE][COLUMNS];
+    unsigned char header; //0xAA - NEW CLIENT - GET DATA
+                          //0xBB - SERVER TO CLIENT - ACK
+                          //0xCC - KNOWN CLIENT - FFT CALCULATED
+    char name[256];
+    float fft;
 }__attribute__((packed)) _dataBuf;
 
-int main()
+void FFT();
+
+int main(int argc, char *argv[])
 {
     int clientSocket, portNum, nBytes;
-    unsigned char header = 0xAA;
     struct sockaddr_in serverAddr;
     socklen_t addr_size;
+
+    if(argc < 2)
+    {
+        printf("Suggested use: ./s <client name>\n");
+        return -1;
+    }
+    else
+        strcpy(_dataBuf.name, argv[1]);
 
     /*Create UDP socket*/
     clientSocket = socket(PF_INET, SOCK_DGRAM, 0);
@@ -39,21 +54,20 @@ int main()
 
     /*Initialize size variable to be used later on*/
     addr_size = sizeof serverAddr;
-
+    _dataBuf.header = 0xAA;
     while(1)
     {
-        _dataBuf.header = 0xAA;
-        sendto(clientSocket,&_dataBuf.header,sizeof(_dataBuf.header),0,(struct sockaddr *)&serverAddr,addr_size);
+        sendto(clientSocket,&_dataBuf,sizeof(_dataBuf),0,(struct sockaddr *)&serverAddr,addr_size);
 
         /*Receive message from server*/
         nBytes = recvfrom(clientSocket,&_dataBuf,sizeof(_dataBuf),0,NULL, NULL);
-
-        // Received something from the server
         if(nBytes > 0 && _dataBuf.header == 0xBB)
         {
-            for(size_t j=0; j<COLUMNS; j++)
-                printf("Client data: %.02f\n", _dataBuf.dataBuf[j]);
+            printf("FFT");
+            FFT();
         }
+
+
     }
 
     return 0;
