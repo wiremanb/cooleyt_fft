@@ -5,6 +5,8 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <time.h>
+#include <vector>
+#include <string>
 
 #define COLUMNS 4096
 
@@ -12,6 +14,7 @@ struct PACKET {
     unsigned char header; //0xAA - New client connection
                           //0xBB - Server to client get file
                           //0xCC - Client to server return fft value
+                          //0xDD - Server got fft values and the client can stop
     char name[256];
     float fft;
 }__attribute__((packed));
@@ -21,11 +24,20 @@ void FFT()
 
 }
 
+void CREATE_FILE(std::vector<std::string> *fileNames, std::string clientName)
+{
+    char tmp[sizeof(clientName)];
+    sprintf(&tmp[0], "%s_vals.txt", clientName.c_str());
+    fileNames->push_back(tmp);
+}
+
 int main(int argc, char *argv[])
 {
     int udpSocket, nBytes;
     struct sockaddr_in serverAddr, clientAddr;
     struct sockaddr_storage serverStorage;
+    std::vector<sockaddr_storage> clients;
+    std::vector<std::string> fileNames;
     struct PACKET _dataBuf;
     socklen_t addr_size, client_addr_size;
 
@@ -62,6 +74,7 @@ int main(int argc, char *argv[])
 
     srand((unsigned int)time(NULL));
     static int clientCount = 0;
+    bool sendToClients = true;
     while(1)
     {
         nBytes = recvfrom(udpSocket,&_dataBuf,sizeof(_dataBuf),0,(struct sockaddr *)&serverStorage, &addr_size);
@@ -69,16 +82,32 @@ int main(int argc, char *argv[])
         {
             printf("Client name: %s\n", _dataBuf.name);
             clientCount++;
+            CREATE_FILE(&fileNames, std::string(_dataBuf.name));
+            clients.push_back(serverStorage);
             _dataBuf.header = 0xBB;
             strcpy(_dataBuf.name, "Server");
             sendto(udpSocket,&_dataBuf,sizeof(_dataBuf),0,(struct sockaddr *)&serverStorage,addr_size);
         }
+        if(clientCount == numberOfClients && clients.size() == numberOfClients && sendToClients == true)
+        {
+
+            for(size_t i=0; i<clients.size(); i++)
+            {
+                _dataBuf.header = 0xBB;
+                strcpy(_dataBuf.name, fileNames.at(i).c_str());
+                sendto(udpSocket,&_dataBuf,sizeof(_dataBuf),0,(struct sockaddr *)&clients.at(i),addr_size);
+            }
+            sendToClients = false;
+        }
+
 
         nBytes = recvfrom(udpSocket,&_dataBuf,sizeof(_dataBuf),0,(struct sockaddr *)&serverStorage, &addr_size);
         if(nBytes > 0 && _dataBuf.header == 0xCC)
         {
             printf("%s fft: %.02f", _dataBuf.name, _dataBuf.fft);
-            FFT();
+            _dataBuf.header == 0xDD;
+            strcpy(_dataBuf.name, "Server");
+            sendto(udpSocket,&_dataBuf,sizeof(_dataBuf),0,(struct sockaddr *)&serverStorage,addr_size);
         }
     }
 

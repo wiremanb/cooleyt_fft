@@ -54,19 +54,27 @@ int main(int argc, char *argv[])
     /*Initialize size variable to be used later on*/
     addr_size = sizeof serverAddr;
     _dataBuf.header = 0xAA;
+    bool calcFFT = false;
     while(1)
     {
         sendto(clientSocket,&_dataBuf,sizeof(_dataBuf),0,(struct sockaddr *)&serverAddr,addr_size);
 
         /*Receive message from server*/
         nBytes = recvfrom(clientSocket,&_dataBuf,sizeof(_dataBuf),0,NULL, NULL);
-        if(nBytes > 0 && _dataBuf.header == 0xBB)
+        if(nBytes > 0 && _dataBuf.header == 0xBB && strcmp(_dataBuf.name, "Server")!=0)
+            calcFFT = true;
+        else
+            calcFFT = false;
+
+        if(calcFFT == true)
         {
-            std::cout << "fft" << std::endl << std::flush;
+            std::cout << "fft file: " << _dataBuf.name << std::endl << std::flush;
             FFT();
+            strcpy(_dataBuf.name, argv[1]);
+            _dataBuf.header = 0xCC;
+            sendto(clientSocket,&_dataBuf,sizeof(_dataBuf),0,(struct sockaddr *)&serverAddr,addr_size);
+            calcFFT = false;
         }
-
-
     }
 
     return 0;
