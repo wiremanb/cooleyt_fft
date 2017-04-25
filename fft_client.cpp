@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
         if(calcFFT == true)
         {
             std::cout << "fft file: " << _dataBuf.name << std::endl << std::flush;
-            FFT();
+//            read_array
             strcpy(_dataBuf.name, argv[1]);
             _dataBuf.header = 0xCC;
             sendto(clientSocket,&_dataBuf,sizeof(_dataBuf),0,(struct sockaddr *)&serverAddr,addr_size);

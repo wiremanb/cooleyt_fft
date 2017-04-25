@@ -24,6 +24,16 @@ void FFT()
 
 }
 
+void Send_To_Clients(int s, PACKET p, std::vector<sockaddr_storage> c)
+{
+    strcpy(p.name, "GO");
+    for(size_t i=0; i<c.size(); i++)
+    {
+        p.header = 0xBB;
+        sendto(s,&p,sizeof(p),0,(struct sockaddr *)&c.at(i),sizeof(c.at(i)));
+    }
+}
+
 void CREATE_FILE(std::vector<std::string> *fileNames, std::string clientName)
 {
     char tmp[sizeof(clientName)];
