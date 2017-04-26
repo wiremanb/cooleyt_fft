@@ -37,7 +37,7 @@ void FFT::transform(complex<float>* f, int N) //
 
 void FFT::ordina(complex<float>* f1, int N) //using the reverse order in the array
 {
-  complex<float> f2[N];
+  complex<float> *f2 = new complex<float>[N];
   for(int i = 0; i < N; i++)
     f2[i] = f1[reverse(N, i)];
   for(int j = 0; j < N; j++)
